@@ -1,0 +1,13 @@
+diff --git a/lib/index.js b/lib/index.js
+index 5a75f390e1ed59db192587176cf6fabd229cdf84..deff280c2ae61a01309e4c3eab467a2f5d106fee 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -99,7 +99,7 @@ async function handleAuth(args, config, userMiddlewareOrRoute) {
+         }
+     }
+     // Preserve cookies set by Auth.js Core
+-    const finalResponse = new Response(response?.body, response);
++    const finalResponse = new NextResponse(response?.body, response);
+     const authCookies = sessionResponse.headers.get("set-cookie");
+     if (authCookies)
+         finalResponse.headers.set("set-cookie", authCookies);
