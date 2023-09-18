@@ -1,0 +1,16 @@
+diff --git a/lib/index.js b/lib/index.js
+index 5a75f390e1ed59db192587176cf6fabd229cdf84..cc30023abd9db57a23d13dd2b32feab140757d89 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -52,7 +52,10 @@ export function initAuth(config) {
+         new Headers(request.headers), config).then(async (authResponse) => {
+             const { user = null, expires = null, ...rest } = (await authResponse.json()) ?? {};
+             // Preserve cookies set by Auth.js Core
+-            const cookies = authResponse.headers.get("set-cookie");
++
++            const cookies = 'getSetCookie' in authResponse.headers ?
++                authResponse.headers.getSetCookie() :
++                authResponse.headers.get("set-cookie");
+             if (cookies)
+                 response?.setHeader("set-cookie", cookies);
+             return { user, expires, ...rest };
