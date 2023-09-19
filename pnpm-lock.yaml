@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   next-auth@0.0.0-manual.ffd05533:
-    hash: r4id2353tdrfekgp3x2arqfbu4
+    hash: p2wgosjt4mkvbicr2omc4ogmba
     path: patches/next-auth@0.0.0-manual.ffd05533.patch
 
 dependencies:
@@ -24,7 +24,7 @@ dependencies:
     version: 13.4.19(react-dom@18.2.0)(react@18.2.0)
   next-auth:
     specifier: 0.0.0-manual.ffd05533
-    version: 0.0.0-manual.ffd05533(patch_hash=r4id2353tdrfekgp3x2arqfbu4)(next@13.4.19)(react@18.2.0)
+    version: 0.0.0-manual.ffd05533(patch_hash=p2wgosjt4mkvbicr2omc4ogmba)(next@13.4.19)(react@18.2.0)
   react:
     specifier: 18.2.0
     version: 18.2.0
@@ -227,7 +227,7 @@ packages:
     hasBin: true
     dev: false
 
-  /next-auth@0.0.0-manual.ffd05533(patch_hash=r4id2353tdrfekgp3x2arqfbu4)(next@13.4.19)(react@18.2.0):
+  /next-auth@0.0.0-manual.ffd05533(patch_hash=p2wgosjt4mkvbicr2omc4ogmba)(next@13.4.19)(react@18.2.0):
     resolution: {integrity: sha512-oTdpOP93rzABms/Qgp3z0udQG3tCZ3JxOCnwU04xLgX/xnC8+HuDHct7IcEpz+zxhZp6jxN0tdVkMCs5kubUfw==}
     peerDependencies:
       next: ^13.4.13
