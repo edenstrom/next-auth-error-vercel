@@ -1,24 +1,30 @@
 diff --git a/lib/index.js b/lib/index.js
-index 5a75f390e1ed59db192587176cf6fabd229cdf84..f945ec700106c4b8ea31cd4f3377cf302017fa98 100644
+index 5a75f390e1ed59db192587176cf6fabd229cdf84..f8273fb4045303718dcd8999890684087b37cabb 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -52,7 +52,8 @@ export function initAuth(config) {
+@@ -52,7 +52,7 @@ export function initAuth(config) {
          new Headers(request.headers), config).then(async (authResponse) => {
              const { user = null, expires = null, ...rest } = (await authResponse.json()) ?? {};
              // Preserve cookies set by Auth.js Core
 -            const cookies = authResponse.headers.get("set-cookie");
 +            const cookies = authResponse.headers.getSetCookie();
-+            console.log("next-auth, lib/index 1", authCookies.length)
              if (cookies)
                  response?.setHeader("set-cookie", cookies);
              return { user, expires, ...rest };
-@@ -100,7 +101,8 @@ async function handleAuth(args, config, userMiddlewareOrRoute) {
+@@ -100,9 +100,13 @@ async function handleAuth(args, config, userMiddlewareOrRoute) {
      }
      // Preserve cookies set by Auth.js Core
      const finalResponse = new Response(response?.body, response);
 -    const authCookies = sessionResponse.headers.get("set-cookie");
+-    if (authCookies)
+-        finalResponse.headers.set("set-cookie", authCookies);
 +    const authCookies = sessionResponse.headers.getSetCookie();
-+    console.log("next-auth, lib/index 2", authCookies.length)
-     if (authCookies)
-         finalResponse.headers.set("set-cookie", authCookies);
++    console.log("next-auth, lib/index:", authCookies.length)
++    if (authCookies) {
++        authCookies.forEach(authCookie => {
++            finalResponse.headers.append("set-cookie", authCookies)
++        });
++    }
      return finalResponse;
+ }
+ /** Check if the request is for a NextAuth.js action. */
