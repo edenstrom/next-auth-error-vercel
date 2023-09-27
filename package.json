@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@types/node": "20.6.2",
-    "@types/react": "18.2.21",
+    "@types/node": "20.7.0",
+    "@types/react": "18.2.23",
     "@types/react-dom": "18.2.7",
-    "next": "13.4.19",
+    "next": "13.5.3",
     "next-auth": "0.0.0-manual.ffd05533",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -20,7 +20,8 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "next-auth@0.0.0-manual.ffd05533": "patches/next-auth@0.0.0-manual.ffd05533.patch"
+      "next-auth@0.0.0-manual.ffd05533": "patches/next-auth@0.0.0-manual.ffd05533.patch",
+      "@auth/core@0.0.0-manual.e9863699": "patches/@auth__core@0.0.0-manual.e9863699.patch"
     }
   }
 }

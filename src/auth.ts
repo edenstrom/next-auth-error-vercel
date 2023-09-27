@@ -13,7 +13,7 @@ export const {
     }),
   ],
   useSecureCookies: false,
-  debug: true,
+  debug: false,
   callbacks: {
     jwt: async ({ token }) => {
       // if this is removed, everything will work correctly

@@ -1,0 +1,47 @@
+diff --git a/lib/index.js b/lib/index.js
+index b4f90c47d82583c6a509c3f8267322cf94d69b76..e28283775471bba9c1b9bd1d9629ca6426120398 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -18,6 +18,7 @@ export async function AuthInternal(request, authOptions) {
+         isPost: method === "POST",
+         csrfDisabled,
+     });
++    console.log('@auth/core, AuthInternal', cookies.length)
+     const sessionStore = new SessionStore(options.cookies.sessionToken, request, options.logger);
+     if (method === "GET") {
+         const render = renderPage({ ...options, query: request.query, cookies });
+diff --git a/lib/routes/session.js b/lib/routes/session.js
+index e496d921578b735e640d1fc766582831dcbfdb1c..ef45dc305020525daa09457730c674fb97dd0108 100644
+--- a/lib/routes/session.js
++++ b/lib/routes/session.js
+@@ -44,15 +44,18 @@ export async function session(params) {
+                 const sessionCookies = sessionStore.chunk(newToken, {
+                     expires: newExpires,
+                 });
++                console.log('@auth/core, lib/routes/session.js, sessionCookies', sessionCookies.length)
+                 response.cookies?.push(...sessionCookies);
+                 await events.session?.({ session: newSession, token });
+             }
+             else {
++                console.log('@auth/core, lib/routes/session.js, clearing cookies')
+                 response.cookies?.push(...sessionStore.clean());
+             }
+         }
+         catch (e) {
+             logger.error(new JWTSessionError(e));
++            console.log('@auth/core, lib/routes/session.js, error, clearing cookies')
+             // If the JWT is not verifiable remove the broken session cookie(s).
+             response.cookies?.push(...sessionStore.clean());
+         }
+diff --git a/lib/web.js b/lib/web.js
+index 08ab573d6c4db0ef535027f7f7db01e46bbc114d..5c465390db3a1ced25972ecbe09dcdb849135513 100644
+--- a/lib/web.js
++++ b/lib/web.js
+@@ -74,6 +74,7 @@ export function toResponse(res) {
+     res.cookies?.forEach((cookie) => {
+         const { name, value, options } = cookie;
+         const cookieHeader = serialize(name, value, options);
++        console.log("@auth/core, lib/web, setting cookie", name)
+         if (headers.has("Set-Cookie"))
+             headers.append("Set-Cookie", cookieHeader);
+         else
