@@ -1,30 +1,251 @@
 diff --git a/lib/index.js b/lib/index.js
-index 5a75f390e1ed59db192587176cf6fabd229cdf84..f8273fb4045303718dcd8999890684087b37cabb 100644
+index 5a75f390e1ed59db192587176cf6fabd229cdf84..2d352616b98692a14e9422fd9e72a3fb1285163d 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -52,7 +52,7 @@ export function initAuth(config) {
-         new Headers(request.headers), config).then(async (authResponse) => {
-             const { user = null, expires = null, ...rest } = (await authResponse.json()) ?? {};
-             // Preserve cookies set by Auth.js Core
+@@ -4,121 +4,141 @@ import { NextResponse } from "next/server";
+ import { detectOrigin, reqWithEnvUrl } from "./env";
+ /** Server-side method to read the session. */
+ async function getSession(headers, config) {
+-    const origin = detectOrigin(headers);
+-    const request = new Request(`${origin}/api/auth/session`, {
+-        headers: { cookie: headers.get("cookie") ?? "" },
+-    });
+-    config.useSecureCookies ?? (config.useSecureCookies = origin.protocol === "https:");
+-    return Auth(request, {
+-        ...config,
+-        callbacks: {
+-            ...config.callbacks,
+-            // Since we are server-side, we don't need to filter out the session data
+-            // See https://nextjs.authjs.dev/v5#authenticating-server-side
+-            session({ session, user, token }) {
+-                return { ...session, user: user ?? token };
+-            },
+-        },
+-    });
++  const origin = detectOrigin(headers);
++  const request = new Request(`${origin}/api/auth/session`, {
++    headers: { cookie: headers.get("cookie") ?? "" },
++  });
++  config.useSecureCookies ??
++    (config.useSecureCookies = origin.protocol === "https:");
++  return Auth(request, {
++    ...config,
++    callbacks: {
++      ...config.callbacks,
++      // Since we are server-side, we don't need to filter out the session data
++      // See https://nextjs.authjs.dev/v5#authenticating-server-side
++      session({ session, user, token }) {
++        return { ...session, user: user ?? token };
++      },
++    },
++  });
+ }
+ function isReqWrapper(arg) {
+-    return typeof arg === "function";
++  return typeof arg === "function";
+ }
+ export function initAuth(config) {
+-    return (...args) => {
+-        if (!args.length)
+-            return getSession(headers(), config).then((r) => r.json());
+-        if (args[0] instanceof Request) {
+-            // middleare.ts
+-            // export { auth as default } from "auth"
+-            const req = args[0];
+-            const ev = args[1];
+-            return handleAuth([req, ev], config);
+-        }
+-        if (isReqWrapper(args[0])) {
+-            // middleare.ts/router.ts
+-            // import { auth } from "auth"
+-            // export default auth((req) => { console.log(req.auth) }})
+-            const userMiddlewareOrRoute = args[0];
+-            return async (...args) => {
+-                return handleAuth(args, config, userMiddlewareOrRoute);
+-            };
+-        }
+-        // API Routes, getServerSideProps
+-        const request = "req" in args[0] ? args[0].req : args[0];
+-        const response = "res" in args[0] ? args[0].res : args[1];
+-        return getSession(
+-        // @ts-expect-error
+-        new Headers(request.headers), config).then(async (authResponse) => {
+-            const { user = null, expires = null, ...rest } = (await authResponse.json()) ?? {};
+-            // Preserve cookies set by Auth.js Core
 -            const cookies = authResponse.headers.get("set-cookie");
-+            const cookies = authResponse.headers.getSetCookie();
-             if (cookies)
-                 response?.setHeader("set-cookie", cookies);
-             return { user, expires, ...rest };
-@@ -100,9 +100,13 @@ async function handleAuth(args, config, userMiddlewareOrRoute) {
+-            if (cookies)
+-                response?.setHeader("set-cookie", cookies);
+-            return { user, expires, ...rest };
+-        });
+-    };
+-}
+-async function handleAuth(args, config, userMiddlewareOrRoute) {
+-    const request = reqWithEnvUrl(args[0]);
+-    const sessionResponse = await getSession(request.headers, config);
+-    const { user = null, expires = null, ...rest } = (await sessionResponse.json()) ?? {};
+-    // If we are handling a recognized NextAuth.js request,
+-    // don't require authorization to avoid an accidental redirect loop
+-    let authorized = true;
+-    // Infer basePath from NEXTAUTH_URL if provided, default to /api/auth
+-    const { pathname: basePath } = new URL(process.env.NEXTAUTH_URL ?? "http://a/api/auth");
+-    if (!isNextAuthAction(request, config, basePath) &&
+-        config.callbacks?.authorized) {
+-        authorized = await config.callbacks.authorized({
+-            request,
+-            auth: { user, expires, ...rest },
+-        });
+-    }
+-    let response = NextResponse.next?.();
+-    if (authorized instanceof Response) {
+-        // User returned a custom response, like redirecting to a page or 401, respect it
+-        response = authorized;
++  return (...args) => {
++    if (!args.length)
++      return getSession(headers(), config).then((r) => r.json());
++    if (args[0] instanceof Request) {
++      // middleare.ts
++      // export { auth as default } from "auth"
++      const req = args[0];
++      const ev = args[1];
++      return handleAuth([req, ev], config);
      }
-     // Preserve cookies set by Auth.js Core
-     const finalResponse = new Response(response?.body, response);
+-    else if (userMiddlewareOrRoute) {
+-        // Execute user's middleware/handler with the augmented request
+-        const augmentedReq = request;
+-        augmentedReq.auth = { user, expires, ...rest };
+-        response =
+-            // @ts-expect-error
+-            (await userMiddlewareOrRoute(augmentedReq, args[1])) ??
+-                NextResponse.next();
++    if (isReqWrapper(args[0])) {
++      // middleare.ts/router.ts
++      // import { auth } from "auth"
++      // export default auth((req) => { console.log(req.auth) }})
++      const userMiddlewareOrRoute = args[0];
++      return async (...args) => {
++        return handleAuth(args, config, userMiddlewareOrRoute);
++      };
+     }
+-    else if (!authorized) {
+-        const signInPage = config.pages?.signIn ?? "/api/auth/signin";
+-        if (request.nextUrl.pathname !== signInPage) {
+-            // Redirect to signin page by default if not authorized
+-            request.nextUrl.pathname = signInPage;
+-            request.nextUrl.searchParams.set("callbackUrl", request.nextUrl.href);
+-            response = NextResponse.redirect(request.nextUrl);
+-        }
++    // API Routes, getServerSideProps
++    const request = "req" in args[0] ? args[0].req : args[0];
++    const response = "res" in args[0] ? args[0].res : args[1];
++    return getSession(
++      // @ts-expect-error
++      new Headers(request.headers),
++      config
++    ).then(async (authResponse) => {
++      const {
++        user = null,
++        expires = null,
++        ...rest
++      } = (await authResponse.json()) ?? {};
++      // Preserve cookies set by Auth.js Core
++      const cookies = authResponse.headers.getSetCookie();
++      if (cookies) response?.setHeader("set-cookie", cookies);
++      return { user, expires, ...rest };
++    });
++  };
++}
++async function handleAuth(args, config, userMiddlewareOrRoute) {
++  const request = reqWithEnvUrl(args[0]);
++  const sessionResponse = await getSession(request.headers, config);
++  const {
++    user = null,
++    expires = null,
++    ...rest
++  } = (await sessionResponse.json()) ?? {};
++  // If we are handling a recognized NextAuth.js request,
++  // don't require authorization to avoid an accidental redirect loop
++  let authorized = true;
++  // Infer basePath from NEXTAUTH_URL if provided, default to /api/auth
++  const { pathname: basePath } = new URL(
++    process.env.NEXTAUTH_URL ?? "http://a/api/auth"
++  );
++  if (
++    !isNextAuthAction(request, config, basePath) &&
++    config.callbacks?.authorized
++  ) {
++    authorized = await config.callbacks.authorized({
++      request,
++      auth: { user, expires, ...rest },
++    });
++  }
++  let response = NextResponse.next?.();
++  if (authorized instanceof Response) {
++    // User returned a custom response, like redirecting to a page or 401, respect it
++    response = authorized;
++  } else if (userMiddlewareOrRoute) {
++    // Execute user's middleware/handler with the augmented request
++    const augmentedReq = request;
++    augmentedReq.auth = { user, expires, ...rest };
++    response =
++      // @ts-expect-error
++      (await userMiddlewareOrRoute(augmentedReq, args[1])) ??
++      NextResponse.next();
++  } else if (!authorized) {
++    const signInPage = config.pages?.signIn ?? "/api/auth/signin";
++    if (request.nextUrl.pathname !== signInPage) {
++      // Redirect to signin page by default if not authorized
++      request.nextUrl.pathname = signInPage;
++      request.nextUrl.searchParams.set("callbackUrl", request.nextUrl.href);
++      response = NextResponse.redirect(request.nextUrl);
+     }
+-    // Preserve cookies set by Auth.js Core
+-    const finalResponse = new Response(response?.body, response);
 -    const authCookies = sessionResponse.headers.get("set-cookie");
 -    if (authCookies)
 -        finalResponse.headers.set("set-cookie", authCookies);
-+    const authCookies = sessionResponse.headers.getSetCookie();
-+    console.log("next-auth, lib/index:", authCookies.length)
-+    if (authCookies) {
-+        authCookies.forEach(authCookie => {
-+            finalResponse.headers.append("set-cookie", authCookies)
-+        });
-+    }
-     return finalResponse;
+-    return finalResponse;
++  }
++  // Preserve cookies set by Auth.js Core
++  const finalResponse = new Response(response?.body, response);
++  const authCookies = sessionResponse.headers.getSetCookie();
++  console.log("next-auth, lib/index:", authCookies.length);
++  if (authCookies) {
++    authCookies.forEach((authCookie) => {
++      console.log(
++        "next-auth, lib/index, appending cookie:",
++        authCookie.slice(0, 20)
++      );
++      finalResponse.headers.append("set-cookie", authCookie);
++    });
++  }
++  return finalResponse;
  }
  /** Check if the request is for a NextAuth.js action. */
+ function isNextAuthAction(req, config, basePath) {
+-    const { pathname } = req.nextUrl;
+-    const action = pathname.replace(`${basePath}/`, "");
+-    const pages = Object.values(config.pages ?? {});
+-    return actions.has(action) || pages.some((page) => pathname === page);
++  const { pathname } = req.nextUrl;
++  const action = pathname.replace(`${basePath}/`, "");
++  const pages = Object.values(config.pages ?? {});
++  return actions.has(action) || pages.some((page) => pathname === page);
+ }
+ const actions = new Set([
+-    "providers",
+-    "session",
+-    "csrf",
+-    "signin",
+-    "signout",
+-    "callback",
+-    "verify-request",
+-    "error",
++  "providers",
++  "session",
++  "csrf",
++  "signin",
++  "signout",
++  "callback",
++  "verify-request",
++  "error",
+ ]);
